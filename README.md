@@ -81,7 +81,10 @@ Use GitHub Actions to build the app on GitHub and publish the outputs.
 This repository includes `.github/workflows/windows-build.yml`:
 
 - On every push or pull request, GitHub builds the Windows app and uploads the `.exe`, `.msi`, and setup `.exe` as workflow artifacts.
-- On a tag that starts with `v`, GitHub also creates a Release and attaches the same build outputs as downloadable release assets.
+- On every push to `main`, GitHub also creates or updates a prerelease named `Latest Windows build` with the same downloadable files.
+- On a tag that starts with `v`, GitHub creates a normal versioned Release and attaches the same build outputs as downloadable release assets.
+
+GitHub Packages is not used by this app. Packages are for registries such as npm packages, container images, and NuGet packages. Desktop installers should be published as Actions artifacts or Release assets.
 
 To publish a release build:
 
@@ -96,7 +99,8 @@ git push origin v0.1.0
 After the workflow finishes, open the repository on GitHub:
 
 - For normal builds: go to `Actions`, open the latest workflow run, and download the artifact.
-- For release builds: go to `Releases`, open the tag release, and download the attached installer or executable.
+- For latest `main` builds: go to `Releases`, open `Latest Windows build`, and download the attached installer or executable.
+- For versioned release builds: go to `Releases`, open the tag release, and download the attached installer or executable.
 
 ## How It Works
 

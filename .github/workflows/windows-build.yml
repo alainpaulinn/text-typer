@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-windows:
     name: Build Windows app
@@ -45,11 +48,58 @@ jobs:
             src-tauri/target/release/bundle/nsis/*setup.exe
           if-no-files-found: error
 
-      - name: Publish GitHub Release assets
+      - name: Publish latest prerelease from main
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "latest"
+          $files = @(
+            "src-tauri/target/release/text-typer.exe",
+            (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi").FullName,
+            (Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe").FullName
+          )
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f $tag $env:GITHUB_SHA
+          git push origin "refs/tags/$tag" --force
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $tag `
+              --title "Latest Windows build" `
+              --notes "Latest successful Windows build from the main branch." `
+              --prerelease
+          } else {
+            gh release create $tag `
+              --target $env:GITHUB_SHA `
+              --title "Latest Windows build" `
+              --notes "Latest successful Windows build from the main branch." `
+              --prerelease
+          }
+
+          gh release upload $tag @files --clobber
+
+      - name: Publish versioned GitHub Release assets
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            src-tauri/target/release/text-typer.exe
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*setup.exe
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $files = @(
+            "src-tauri/target/release/text-typer.exe",
+            (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi").FullName,
+            (Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe").FullName
+          )
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $tag --title $tag --latest
+          } else {
+            gh release create $tag --title $tag --generate-notes --latest
+          }
+
+          gh release upload $tag @files --clobber
