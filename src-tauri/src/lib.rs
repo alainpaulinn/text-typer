@@ -59,6 +59,8 @@ struct TypingProgress {
     total: usize,
     status: &'static str,
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    countdown_remaining: Option<u64>,
 }
 
 #[tauri::command]
@@ -93,13 +95,7 @@ fn start_typing(
                 return;
             }
 
-            emit_progress(
-                &app,
-                0,
-                total,
-                "countdown",
-                format!("Typing in {remaining}s"),
-            );
+            emit_countdown_progress(&app, remaining, total);
             thread::sleep(Duration::from_secs(1));
         }
 
@@ -219,6 +215,20 @@ fn emit_progress(
             total,
             status,
             message: message.into(),
+            countdown_remaining: None,
+        },
+    );
+}
+
+fn emit_countdown_progress(app: &AppHandle, remaining: u64, total: usize) {
+    let _ = app.emit(
+        "typing-progress",
+        TypingProgress {
+            current: 0,
+            total,
+            status: "countdown",
+            message: format!("Typing in {remaining}s"),
+            countdown_remaining: Some(remaining),
         },
     );
 }

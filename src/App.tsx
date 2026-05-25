@@ -29,6 +29,7 @@ type TypingPayload = {
   total: number;
   status: "countdown" | "typing" | "done" | "stopped" | "error";
   message: string;
+  countdownRemaining?: number;
 };
 
 type WindowState = {
@@ -56,6 +57,8 @@ export default function App() {
   const charCount = useMemo(() => Array.from(text).length, [text]);
   const progressValue =
     progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+  const countdownNumber =
+    progress.status === "countdown" ? progress.countdownRemaining : undefined;
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -325,6 +328,20 @@ export default function App() {
           </Button>
         </footer>
       </main>
+
+      {countdownNumber ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-50 flex select-none items-center justify-center overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            key={countdownNumber}
+            className="countdown-number text-primary"
+          >
+            {countdownNumber}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
