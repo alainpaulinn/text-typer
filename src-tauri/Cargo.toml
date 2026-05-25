@@ -1,0 +1,18 @@
+[package]
+name = "text-typer"
+version = "0.1.0"
+description = "A compact desktop text typer"
+authors = ["alain"]
+edition = "2021"
+
+[lib]
+name = "text_typer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.6.2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "=2.11.2", features = [] }
+windows = { version = "0.58.0", features = ["Win32_UI_Input_KeyboardAndMouse"] }
