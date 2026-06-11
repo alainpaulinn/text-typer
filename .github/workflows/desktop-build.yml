@@ -1,4 +1,4 @@
-name: Windows Build
+name: Desktop Build
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
       - name: Build Tauri app
         run: npm run tauri -- build
 
-      - name: Upload workflow artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: text-typer-windows
@@ -48,6 +48,52 @@ jobs:
             src-tauri/target/release/bundle/nsis/*setup.exe
           if-no-files-found: error
 
+  build-macos:
+    name: Build macOS app
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        run: npm run tauri -- build
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: text-typer-macos
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish release assets
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
       - name: Publish latest prerelease from main
         if: github.ref == 'refs/heads/main'
         shell: pwsh
@@ -55,11 +101,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "latest"
-          $files = @(
-            "src-tauri/target/release/text-typer.exe",
-            (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi").FullName,
-            (Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe").FullName
-          )
+          $files = Get-ChildItem "release-assets" -Recurse -File | Select-Object -ExpandProperty FullName
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -69,18 +111,18 @@ jobs:
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release edit $tag `
-              --title "Latest Windows build" `
-              --notes "Latest successful Windows build from the main branch." `
+              --title "Latest desktop build" `
+              --notes "Latest successful Windows and macOS builds from the main branch." `
               --prerelease
           } else {
             gh release create $tag `
               --target $env:GITHUB_SHA `
-              --title "Latest Windows build" `
-              --notes "Latest successful Windows build from the main branch." `
+              --title "Latest desktop build" `
+              --notes "Latest successful Windows and macOS builds from the main branch." `
               --prerelease
           }
 
-          gh release upload $tag @files --clobber
+          gh release upload $tag $files --clobber
 
       - name: Publish versioned GitHub Release assets
         if: startsWith(github.ref, 'refs/tags/v')
@@ -89,11 +131,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $files = @(
-            "src-tauri/target/release/text-typer.exe",
-            (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi").FullName,
-            (Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe").FullName
-          )
+          $files = Get-ChildItem "release-assets" -Recurse -File | Select-Object -ExpandProperty FullName
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
@@ -102,4 +140,4 @@ jobs:
             gh release create $tag --title $tag --generate-notes --latest
           }
 
-          gh release upload $tag @files --clobber
+          gh release upload $tag $files --clobber

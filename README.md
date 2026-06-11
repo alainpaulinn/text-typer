@@ -19,7 +19,8 @@ The app is built with Tauri, Rust, React, Tailwind CSS, and shadcn-style UI comp
 
 ## Requirements
 
-- Windows.
+- Windows for full typing support.
+- macOS builds are published by CI, but typing automation is currently implemented only for Windows.
 - Node.js 20 or newer.
 - Rust stable toolchain.
 - Tauri Windows prerequisites, including Microsoft Edge WebView2.
@@ -59,17 +60,23 @@ From the repository root:
 npm run tauri -- build
 ```
 
-The production executable is created at:
+On Windows, the production executable is created at:
 
 ```text
 src-tauri/target/release/text-typer.exe
 ```
 
-Installers are created at:
+Windows installers are created at:
 
 ```text
 src-tauri/target/release/bundle/nsis/Text Typer_0.1.0_x64-setup.exe
 src-tauri/target/release/bundle/msi/Text Typer_0.1.0_x64_en-US.msi
+```
+
+On macOS, CI produces a `.dmg` at:
+
+```text
+src-tauri/target/release/bundle/dmg/
 ```
 
 ## Make Builds Visible On GitHub
@@ -78,10 +85,12 @@ GitHub does not show local build outputs automatically. Build output folders suc
 
 Use GitHub Actions to build the app on GitHub and publish the outputs.
 
-This repository includes `.github/workflows/windows-build.yml`:
+This repository includes `.github/workflows/desktop-build.yml`:
 
-- On every push or pull request, GitHub builds the Windows app and uploads the `.exe`, `.msi`, and setup `.exe` as workflow artifacts.
-- On every push to `main`, GitHub also creates or updates a prerelease named `Latest Windows build` with the same downloadable files.
+- On every push or pull request, GitHub builds the Windows app and macOS app.
+- Windows outputs are uploaded as workflow artifacts: `.exe`, `.msi`, and setup `.exe`.
+- macOS outputs are uploaded as workflow artifacts: `.dmg`.
+- On every push to `main`, GitHub creates or updates a prerelease named `Latest desktop build` with the downloadable Windows and macOS files.
 - On a tag that starts with `v`, GitHub creates a normal versioned Release and attaches the same build outputs as downloadable release assets.
 
 GitHub Packages is not used by this app. Packages are for registries such as npm packages, container images, and NuGet packages. Desktop installers should be published as Actions artifacts or Release assets.
@@ -99,7 +108,7 @@ git push origin v0.1.0
 After the workflow finishes, open the repository on GitHub:
 
 - For normal builds: go to `Actions`, open the latest workflow run, and download the artifact.
-- For latest `main` builds: go to `Releases`, open `Latest Windows build`, and download the attached installer or executable.
+- For latest `main` builds: go to `Releases`, open `Latest desktop build`, and download the attached installer, executable, or macOS DMG.
 - For versioned release builds: go to `Releases`, open the tag release, and download the attached installer or executable.
 
 ## How It Works
